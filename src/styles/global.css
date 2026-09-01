@@ -1,0 +1,192 @@
+/* Design language: a digital take on a thermal-printed paper ticket stub —
+   the object customers already recognize from bakeries, clinics, banks.
+   Paper white + ink navy for the everyday "waiting" state, a marigold
+   accent only for the one moment that matters: "it's your turn". */
+
+:root {
+  --paper: #FAF7F0;
+  --paper-edge: #E4DCC9;
+  --ink: #1C2B39;
+  --ink-soft: #5B6B78;
+  --teal: #2F7A6F;
+  --amber: #D9A22B;
+  --danger: #B4442E;
+
+  --font-body: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-ticket: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.screen {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+/* --- Ticket stub -------------------------------------------------------- */
+
+.ticket {
+  width: 100%;
+  max-width: 340px;
+  background: #fff;
+  border: 1px solid var(--paper-edge);
+  border-radius: 4px;
+  padding: 28px 24px 24px;
+  position: relative;
+  box-shadow: 0 1px 0 var(--paper-edge);
+  text-align: center;
+}
+
+/* perforated tear edge along the bottom of the stub */
+.ticket::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -9px;
+  height: 18px;
+  background-image: radial-gradient(circle 5px, var(--paper) 5px, transparent 5.5px);
+  background-size: 18px 18px;
+  background-position: 0 -9px;
+}
+
+.ticket-label {
+  font-size: 13px;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+}
+
+.ticket-number {
+  font-family: var(--font-ticket);
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1.05;
+  margin: 6px 0 18px;
+  letter-spacing: -0.02em;
+}
+
+.ticket-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px dashed var(--paper-edge);
+  font-size: 14px;
+}
+
+.ticket-row span:last-child {
+  font-weight: 600;
+  font-family: var(--font-ticket);
+}
+
+.ticket.is-called {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 2px var(--amber);
+}
+
+.called-banner {
+  background: var(--amber);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 3px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.station-name {
+  font-family: var(--font-ticket);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* --- Buttons -------------------------------------------------------------- */
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: 3px;
+  padding: 13px 22px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-primary { background: var(--teal); color: #fff; }
+.btn-primary:hover { background: #276358; }
+.btn-secondary { background: transparent; color: var(--ink); border: 1px solid var(--paper-edge); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* --- Queue selection list ------------------------------------------------- */
+
+.queue-list { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 10px; }
+.queue-option {
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--paper-edge);
+  border-radius: 4px;
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.queue-option:hover { border-color: var(--teal); }
+.queue-option[disabled] { opacity: 0.45; cursor: not-allowed; }
+
+.lang-picker {
+  position: fixed; top: 12px; right: 12px;
+  font-size: 13px; font-family: inherit;
+  border: 1px solid var(--paper-edge); border-radius: 3px;
+  padding: 6px 8px; background: #fff; color: var(--ink);
+}
+
+/* --- Staff dashboard ------------------------------------------------------ */
+
+.dashboard {
+  min-height: 100%;
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.station-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.station-card {
+  background: #fff;
+  border: 1px solid var(--paper-edge);
+  border-radius: 4px;
+  padding: 18px;
+}
+
+.station-card.on-break { border-left: 4px solid var(--amber); }
+.station-card.active { border-left: 4px solid var(--teal); }
+.station-card.closed { border-left: 4px solid var(--ink-soft); opacity: 0.7; }
+
+.pill {
+  display: inline-block;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  color: var(--ink-soft);
+}

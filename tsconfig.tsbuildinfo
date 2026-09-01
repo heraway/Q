@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/vite-env.d.ts","./src/i18n/index.ts","./src/lib/firebase.ts","./src/lib/queue.ts","./src/pages/CustomerTicket.tsx","./src/pages/StaffTerminal.tsx","./src/pages/SuperAdmin.tsx"],"version":"5.9.3"}

@@ -1,0 +1,67 @@
+rules_version = '2';
+
+// Roles come from Firebase Auth custom claims, set by scripts/set-claims.mjs
+// (run by you, the super admin — see README):
+//   { admin: true }                    -> you, m.mukuka1323@gmail.com
+//   { staffOf: ["businessId", ...] }   -> a staff member of those businesses
+//
+// Customers never sign in. Every rule below that lets an unauthenticated
+// visitor read or write is deliberate (that's the "no account needed" side
+// of the product) and scoped as tightly as Firestore rules allow.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    function isStaffOf(businessId) {
+      return request.auth != null &&
+        request.auth.token.staffOf != null &&
+        businessId in request.auth.token.staffOf;
+    }
+
+    match /businesses/{businessId} {
+      // Public read so the ticket page can resolve a slug with no login.
+      allow read: if true;
+      allow write: if isAdmin();
+
+      match /queues/{queueId} {
+        allow read: if true;
+        // Staff/admin manage queues (create, rename, toggle cutoff)...
+        allow create, delete: if isAdmin() || isStaffOf(businessId);
+        allow update: if isAdmin() || isStaffOf(businessId) ||
+          // ...except: an anonymous customer's createTicket() transaction is
+          // allowed to bump nextNumber by exactly 1 and nothing else, and
+          // only while the queue isn't cut off.
+          (
+            resource.data.cutoff == false &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nextNumber']) &&
+            request.resource.data.nextNumber == resource.data.nextNumber + 1
+          );
+      }
+
+      match /stations/{stationId} {
+        allow read: if true;
+        allow write: if isAdmin() || isStaffOf(businessId);
+      }
+
+      match /tickets/{ticketId} {
+        // Public read: needed for the customer's own live status and the
+        // "people ahead of me" count. Ticket numbers carry no personal data.
+        allow read: if true;
+        // Anyone can create a ticket for themselves (that's the whole point),
+        // but only in the "waiting" state with no station pre-assigned.
+        allow create: if request.resource.data.status == 'waiting' &&
+          !('stationId' in request.resource.data);
+        // Only staff/admin can call, serve, or cancel a ticket.
+        allow update, delete: if isAdmin() || isStaffOf(businessId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

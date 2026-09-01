@@ -1,0 +1,14 @@
+{
+  "yourNumber": "Votre numéro",
+  "peopleAhead": "Personnes avant vous",
+  "estimatedWait": "Attente estimée",
+  "minutes": "min",
+  "waiting": "En attente",
+  "calledTitle": "C'est votre tour !",
+  "goTo": "Veuillez vous rendre à",
+  "getTicket": "Obtenir un ticket",
+  "chooseQueue": "Que venez-vous faire ?",
+  "lineClosed": "Cette file est fermée pour le moment",
+  "served": "Merci, c'est terminé",
+  "language": "Langue"
+}

@@ -1,0 +1,14 @@
+{
+  "yourNumber": "Your number",
+  "peopleAhead": "People ahead of you",
+  "estimatedWait": "Estimated wait",
+  "minutes": "min",
+  "waiting": "Waiting",
+  "calledTitle": "It's your turn!",
+  "goTo": "Please go to",
+  "getTicket": "Get a ticket",
+  "chooseQueue": "What are you here for?",
+  "lineClosed": "This line is closed for now",
+  "served": "Thanks — you're all done",
+  "language": "Language"
+}
