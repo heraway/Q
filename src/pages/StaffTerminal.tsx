@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import {
   signInWithEmailAndPassword, onAuthStateChanged, signOut, type User
@@ -115,7 +115,10 @@ export default function StaffTerminal() {
     <div className="dashboard">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ margin: 0 }}>{myStation?.name}</h2>
-        <button className="btn btn-secondary" onClick={() => signOut(auth)}>Sign out</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link to={`/staff/${businessSlug}/manage`} className="btn btn-secondary">Manage</Link>
+          <button className="btn btn-secondary" onClick={() => signOut(auth)}>Sign out</button>
+        </div>
       </div>
 
       <div className="station-card" style={{ marginTop: 16 }}>

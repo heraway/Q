@@ -25,7 +25,9 @@ service cloud.firestore {
     match /businesses/{businessId} {
       // Public read so the ticket page can resolve a slug with no login.
       allow read: if true;
-      allow write: if isAdmin();
+      // Staff can rename their own business; only you can create/remove one.
+      allow update: if isAdmin() || isStaffOf(businessId);
+      allow create, delete: if isAdmin();
 
       match /queues/{queueId} {
         allow read: if true;
@@ -33,12 +35,16 @@ service cloud.firestore {
         allow create, delete: if isAdmin() || isStaffOf(businessId);
         allow update: if isAdmin() || isStaffOf(businessId) ||
           // ...except: an anonymous customer's createTicket() transaction is
-          // allowed to bump nextNumber by exactly 1 and nothing else, and
-          // only while the queue isn't cut off.
+          // allowed to bump nextNumber (by 1 normally, or reset to 2 on the
+          // first ticket of a new day) and update lastResetDate, and only
+          // while the queue isn't cut off.
           (
             resource.data.cutoff == false &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nextNumber']) &&
-            request.resource.data.nextNumber == resource.data.nextNumber + 1
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nextNumber', 'lastResetDate']) &&
+            (
+              request.resource.data.nextNumber == resource.data.nextNumber + 1 ||
+              request.resource.data.nextNumber == 2
+            )
           );
       }
 

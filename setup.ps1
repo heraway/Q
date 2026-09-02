@@ -1,4 +1,4 @@
-# Q — first-time setup (Windows PowerShell)
+# Q - first-time setup (Windows PowerShell)
 # Run this from the project root: .\setup.ps1
 
 Write-Host "Installing dependencies..." -ForegroundColor Cyan
@@ -11,11 +11,13 @@ if (-not (Get-Command firebase -ErrorAction SilentlyContinue)) {
 
 if (-not (Test-Path ".env")) {
     Copy-Item ".env.example" ".env"
-    Write-Host "`nCreated .env — fill in your Firebase project's web config, then re-run 'npm run dev'." -ForegroundColor Yellow
-    Write-Host "Get it from: Firebase Console > Project settings > General > Your apps > Web app" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Created .env - fill in your Firebase project web config, then re-run npm run dev." -ForegroundColor Yellow
+    Write-Host "Get it from: Firebase Console, Project settings, General, Your apps, Web app" -ForegroundColor Yellow
 }
 
-Write-Host "`nNext steps:" -ForegroundColor Green
+Write-Host ""
+Write-Host "Next steps:" -ForegroundColor Green
 Write-Host "  1. firebase login"
 Write-Host "  2. firebase use --add        (pick or create your Firebase project)"
 Write-Host "  3. Fill in .env with your Firebase web config"

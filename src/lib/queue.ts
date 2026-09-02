@@ -1,6 +1,6 @@
 import {
-  addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot,
-  orderBy, query, runTransaction, serverTimestamp, updateDoc, where
+  addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, onSnapshot,
+  query, runTransaction, serverTimestamp, updateDoc, where
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -36,6 +36,11 @@ export interface QueueDoc {
   cutoff: boolean; // true = not accepting new tickets
   nextNumber: number;
   avgServiceSeconds: number; // rolling estimate, used for wait-time guess
+  lastResetDate?: string; // "YYYY-MM-DD" — the day nextNumber was last reset to 1
+}
+
+function todayStamp() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 export interface Station {
@@ -59,7 +64,13 @@ export async function createTicket(businessId: string, queueId: string) {
     const queueData = queueSnap.data() as QueueDoc;
     if (queueData.cutoff) throw new Error("cutoff");
 
-    const number = (queueData.nextNumber ?? 1);
+    // First ticket of a new day resets the count back to 1, so numbers
+    // don't climb forever — no scheduled job needed, it just happens
+    // naturally on whoever scans first that day.
+    const today = todayStamp();
+    const isNewDay = queueData.lastResetDate !== today;
+    const number = isNewDay ? 1 : (queueData.nextNumber ?? 1);
+
     const newTicketRef = doc(ticketsRef);
     tx.set(newTicketRef, {
       number,
@@ -68,7 +79,12 @@ export async function createTicket(businessId: string, queueId: string) {
       status: "waiting",
       createdAt: serverTimestamp()
     });
-    tx.update(queueRef, { nextNumber: increment(1) });
+
+    if (isNewDay) {
+      tx.update(queueRef, { nextNumber: 2, lastResetDate: today });
+    } else {
+      tx.update(queueRef, { nextNumber: increment(1) });
+    }
     return { id: newTicketRef.id, number };
   });
 }
@@ -108,13 +124,13 @@ export async function callNext(businessId: string, stationId: string, queueId: s
   const waitingQuery = query(
     ticketsRef,
     where("queueId", "==", queueId),
-    where("status", "==", "waiting"),
-    orderBy("number", "asc")
+    where("status", "==", "waiting")
   );
   const waitingSnap = await getDocs(waitingQuery);
   if (waitingSnap.empty) return null;
 
-  const nextTicketDoc = waitingSnap.docs[0];
+  const sortedDocs = [...waitingSnap.docs].sort((a, b) => a.data().number - b.data().number);
+  const nextTicketDoc = sortedDocs[0];
   const stationRef = doc(db, "businesses", businessId, "stations", stationId);
   const stationSnap = await getDoc(stationRef);
   const stationName = stationSnap.exists() ? stationSnap.data().name : "";
@@ -152,6 +168,46 @@ export async function setQueueCutoff(businessId: string, queueId: string, cutoff
   await updateDoc(queueRef, { cutoff });
 }
 
+// --- Management (business name, queues, stations) -------------------------
+// All of these require staff/admin, enforced in firestore.rules — the check
+// here is just for a nicer UI, not the real security boundary.
+
+export async function updateBusinessName(businessId: string, name: string) {
+  await updateDoc(doc(db, "businesses", businessId), { name });
+}
+
+export async function createQueue(businessId: string, name: string) {
+  const ref = collection(db, "businesses", businessId, "queues");
+  return addDoc(ref, {
+    name,
+    cutoff: false,
+    nextNumber: 1,
+    avgServiceSeconds: 180,
+    lastResetDate: todayStamp()
+  });
+}
+
+export async function updateQueueName(businessId: string, queueId: string, name: string) {
+  await updateDoc(doc(db, "businesses", businessId, "queues", queueId), { name });
+}
+
+export async function deleteQueue(businessId: string, queueId: string) {
+  await deleteDoc(doc(db, "businesses", businessId, "queues", queueId));
+}
+
+export async function createStation(businessId: string, name: string) {
+  const ref = collection(db, "businesses", businessId, "stations");
+  return addDoc(ref, { name, status: "active", currentTicketId: null });
+}
+
+export async function updateStationName(businessId: string, stationId: string, name: string) {
+  await updateDoc(doc(db, "businesses", businessId, "stations", stationId), { name });
+}
+
+export async function deleteStation(businessId: string, stationId: string) {
+  await deleteDoc(doc(db, "businesses", businessId, "stations", stationId));
+}
+
 export function watchStations(businessId: string, cb: (stations: Station[]) => void) {
   const ref = collection(db, "businesses", businessId, "stations");
   return onSnapshot(ref, (snap) => {
@@ -170,10 +226,13 @@ export function watchWaitingTickets(businessId: string, queueId: string, cb: (ti
   const q = query(
     collection(db, "businesses", businessId, "tickets"),
     where("queueId", "==", queueId),
-    where("status", "==", "waiting"),
-    orderBy("number", "asc")
+    where("status", "==", "waiting")
   );
-  return onSnapshot(q, (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Ticket))));
+  return onSnapshot(q, (snap) => {
+    const tickets = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Ticket));
+    tickets.sort((a, b) => a.number - b.number);
+    cb(tickets);
+  });
 }
 
 /** Rough wait estimate: people ahead × average service time / number of active stations. */

@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { I18nProvider } from "./i18n";
 import CustomerTicket from "./pages/CustomerTicket";
 import StaffTerminal from "./pages/StaffTerminal";
+import ManageBusiness from "./pages/ManageBusiness";
 import SuperAdmin from "./pages/SuperAdmin";
 import "./styles/global.css";
 
@@ -16,6 +17,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/b/:businessSlug" element={<CustomerTicket />} />
           {/* Staff terminals — one per counter/table, logged in as the business's staff */}
           <Route path="/staff/:businessSlug" element={<StaffTerminal />} />
+          {/* Add/rename/remove queues and stations, rename the business */}
+          <Route path="/staff/:businessSlug/manage" element={<ManageBusiness />} />
           {/* You: manage every business from one place */}
           <Route path="/super-admin" element={<SuperAdmin />} />
           <Route path="/" element={<Landing />} />
