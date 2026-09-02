@@ -5,6 +5,7 @@ import { I18nProvider } from "./i18n";
 import CustomerTicket from "./pages/CustomerTicket";
 import StaffTerminal from "./pages/StaffTerminal";
 import ManageBusiness from "./pages/ManageBusiness";
+import BusinessQr from "./pages/BusinessQr";
 import SuperAdmin from "./pages/SuperAdmin";
 import "./styles/global.css";
 
@@ -19,6 +20,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="/staff/:businessSlug" element={<StaffTerminal />} />
           {/* Add/rename/remove queues and stations, rename the business */}
           <Route path="/staff/:businessSlug/manage" element={<ManageBusiness />} />
+          {/* Printable QR code pointing customers at their ticket page */}
+          <Route path="/staff/:businessSlug/qr" element={<BusinessQr />} />
           {/* You: manage every business from one place */}
           <Route path="/super-admin" element={<SuperAdmin />} />
           <Route path="/" element={<Landing />} />

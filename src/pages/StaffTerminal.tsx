@@ -116,6 +116,7 @@ export default function StaffTerminal() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ margin: 0 }}>{myStation?.name}</h2>
         <div style={{ display: "flex", gap: 8 }}>
+          <Link to={`/staff/${businessSlug}/qr`} className="btn btn-secondary">QR code</Link>
           <Link to={`/staff/${businessSlug}/manage`} className="btn btn-secondary">Manage</Link>
           <button className="btn btn-secondary" onClick={() => signOut(auth)}>Sign out</button>
         </div>
