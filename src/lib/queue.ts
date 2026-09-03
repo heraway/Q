@@ -4,6 +4,22 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 
+export interface Business {
+  id: string;
+  name: string;
+  slug: string;
+  theme?: string;
+  logoUrl?: string;
+}
+
+/** Resolve a business by its QR-link slug. Shared by every page that needs it. */
+export async function getBusinessBySlug(slug: string): Promise<Business | null> {
+  const snap = await getDocs(query(collection(db, "businesses"), where("slug", "==", slug)));
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() } as Business;
+}
+
 // --- Data model ---------------------------------------------------------
 // businesses/{businessId}
 // businesses/{businessId}/queues/{queueId}        -> a line, e.g. "General", "Table for 2"
@@ -174,6 +190,14 @@ export async function setQueueCutoff(businessId: string, queueId: string, cutoff
 
 export async function updateBusinessName(businessId: string, name: string) {
   await updateDoc(doc(db, "businesses", businessId), { name });
+}
+
+export async function updateBusinessTheme(businessId: string, theme: string) {
+  await updateDoc(doc(db, "businesses", businessId), { theme });
+}
+
+export async function updateBusinessLogo(businessId: string, logoUrl: string) {
+  await updateDoc(doc(db, "businesses", businessId), { logoUrl });
 }
 
 export async function createQueue(businessId: string, name: string) {

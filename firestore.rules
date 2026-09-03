@@ -1,13 +1,16 @@
 rules_version = '2';
 
-// Roles come from Firebase Auth custom claims, set by scripts/set-claims.mjs
-// (run by you, the super admin — see README):
-//   { admin: true }                    -> you, m.mukuka1323@gmail.com
-//   { staffOf: ["businessId", ...] }   -> a staff member of those businesses
+// Roles:
+//   Super admin (you): Firebase Auth custom claim { admin: true },
+//     set by scripts/set-claims.mjs — this stays admin-only and rare.
+//   Business staff: NOT a custom claim anymore. It's just the business
+//     document's own `staffUids` array. Any signed-in user can create a
+//     business with themselves in staffUids[0] — that's what makes signup
+//     self-service with no action needed from you. Legacy businesses set up
+//     via the old `staffOf` token claim still work too (checked below).
 //
-// Customers never sign in. Every rule below that lets an unauthenticated
-// visitor read or write is deliberate (that's the "no account needed" side
-// of the product) and scoped as tightly as Firestore rules allow.
+// Customers never sign in. Every rule that lets an unauthenticated visitor
+// read or write is deliberate and scoped as tightly as rules allow.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -16,28 +19,40 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.admin == true;
     }
 
+    function bizStaffUids(businessId) {
+      let biz = get(/databases/$(database)/documents/businesses/$(businessId)).data;
+      return ('staffUids' in biz) ? biz.staffUids : [];
+    }
+
     function isStaffOf(businessId) {
-      return request.auth != null &&
-        request.auth.token.staffOf != null &&
-        businessId in request.auth.token.staffOf;
+      return request.auth != null && (
+        (request.auth.token.staffOf != null && businessId in request.auth.token.staffOf) ||
+        request.auth.uid in bizStaffUids(businessId)
+      );
     }
 
     match /businesses/{businessId} {
       // Public read so the ticket page can resolve a slug with no login.
       allow read: if true;
-      // Staff can rename their own business; only you can create/remove one.
+      // Self-service signup: any signed-in user can create a business with
+      // themselves as its one and only initial staff member. You (admin)
+      // can also create one directly from /super-admin, with or without that.
+      allow create: if isAdmin() || (
+        request.auth != null &&
+        request.resource.data.staffUids is list &&
+        request.resource.data.staffUids.size() == 1 &&
+        request.resource.data.staffUids[0] == request.auth.uid
+      );
       allow update: if isAdmin() || isStaffOf(businessId);
-      allow create, delete: if isAdmin();
+      allow delete: if isAdmin();
 
       match /queues/{queueId} {
         allow read: if true;
-        // Staff/admin manage queues (create, rename, toggle cutoff)...
         allow create, delete: if isAdmin() || isStaffOf(businessId);
         allow update: if isAdmin() || isStaffOf(businessId) ||
-          // ...except: an anonymous customer's createTicket() transaction is
-          // allowed to bump nextNumber (by 1 normally, or reset to 2 on the
-          // first ticket of a new day) and update lastResetDate, and only
-          // while the queue isn't cut off.
+          // An anonymous customer's createTicket() transaction is allowed to
+          // bump nextNumber (by 1, or reset to 2 on a new day's first
+          // ticket) and update lastResetDate, only while not cut off.
           (
             resource.data.cutoff == false &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nextNumber', 'lastResetDate']) &&
@@ -54,14 +69,9 @@ service cloud.firestore {
       }
 
       match /tickets/{ticketId} {
-        // Public read: needed for the customer's own live status and the
-        // "people ahead of me" count. Ticket numbers carry no personal data.
         allow read: if true;
-        // Anyone can create a ticket for themselves (that's the whole point),
-        // but only in the "waiting" state with no station pre-assigned.
         allow create: if request.resource.data.status == 'waiting' &&
           !('stationId' in request.resource.data);
-        // Only staff/admin can call, serve, or cancel a ticket.
         allow update, delete: if isAdmin() || isStaffOf(businessId);
       }
     }

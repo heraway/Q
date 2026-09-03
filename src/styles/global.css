@@ -6,10 +6,12 @@
 :root {
   --paper: #FAF7F0;
   --paper-edge: #E4DCC9;
+  --card-bg: #FFFFFF;
   --ink: #1C2B39;
   --ink-soft: #5B6B78;
   --teal: #2F7A6F;
   --amber: #D9A22B;
+  --amber-glow: rgba(217, 162, 43, 0.35);
   --danger: #B4442E;
 
   --font-body: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -37,6 +39,9 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
+  background: var(--paper);
+  color: var(--ink);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* --- Ticket stub -------------------------------------------------------- */
@@ -44,13 +49,14 @@ body {
 .ticket {
   width: 100%;
   max-width: 340px;
-  background: #fff;
+  background: var(--card-bg);
   border: 1px solid var(--paper-edge);
   border-radius: 4px;
   padding: 28px 24px 24px;
   position: relative;
   box-shadow: 0 1px 0 var(--paper-edge);
   text-align: center;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 /* perforated tear edge along the bottom of the stub */
@@ -95,6 +101,12 @@ body {
 .ticket.is-called {
   border-color: var(--amber);
   box-shadow: 0 0 0 2px var(--amber);
+  animation: q-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes q-glow {
+  0%, 100% { box-shadow: 0 0 0 2px var(--amber), 0 0 0 0 var(--amber-glow); }
+  50% { box-shadow: 0 0 0 2px var(--amber), 0 0 22px 4px var(--amber-glow); }
 }
 
 .called-banner {
@@ -110,6 +122,35 @@ body {
   font-family: var(--font-ticket);
   font-size: 22px;
   font-weight: 700;
+}
+
+/* --- Business logo + wait animation --------------------------------------- */
+
+.biz-logo {
+  max-height: 52px;
+  max-width: 200px;
+  object-fit: contain;
+  margin-bottom: 14px;
+}
+
+/* A flowing gradient bar under "Estimated wait" — evokes sand falling
+ * through an hourglass without the cost of a literal SVG animation. */
+.wait-bar {
+  height: 4px;
+  border-radius: 2px;
+  margin-top: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--paper-edge) 0%, var(--teal) 20%, var(--paper-edge) 40%,
+    var(--paper-edge) 60%, var(--teal) 80%, var(--paper-edge) 100%
+  );
+  background-size: 200% 100%;
+  animation: q-flow 2.4s linear infinite;
+}
+
+@keyframes q-flow {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* --- Buttons -------------------------------------------------------------- */
@@ -136,7 +177,8 @@ body {
 .queue-list { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 10px; }
 .queue-option {
   text-align: left;
-  background: #fff;
+  background: var(--card-bg);
+  color: var(--ink);
   border: 1px solid var(--paper-edge);
   border-radius: 4px;
   padding: 14px 16px;
@@ -151,7 +193,7 @@ body {
   position: fixed; top: 12px; right: 12px;
   font-size: 13px; font-family: inherit;
   border: 1px solid var(--paper-edge); border-radius: 3px;
-  padding: 6px 8px; background: #fff; color: var(--ink);
+  padding: 6px 8px; background: var(--card-bg); color: var(--ink);
 }
 
 /* --- Staff dashboard ------------------------------------------------------ */
@@ -189,4 +231,23 @@ body {
   background: var(--paper);
   border: 1px solid var(--paper-edge);
   color: var(--ink-soft);
+}
+
+/* --- Theme picker (used on the Manage screen, not per-business styled) --- */
+
+.theme-swatch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  background: #F4F1EA;
+}
+.theme-swatch.selected { border-color: #2F7A6F; background: #fff; }
+.theme-swatch-dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  flex-shrink: 0; border: 1px solid rgba(0,0,0,0.1);
 }

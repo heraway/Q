@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "react-router-dom";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../lib/firebase";
 import {
-  createTicket, estimateWaitMinutes, watchPeopleAhead, watchQueues,
-  watchStations, watchTicket, type QueueDoc, type Station, type Ticket
+  createTicket, estimateWaitMinutes, getBusinessBySlug, watchPeopleAhead, watchQueues,
+  watchStations, watchTicket, type Business, type QueueDoc, type Station, type Ticket
 } from "../lib/queue";
 import { LANGUAGE_NAMES, LOCALES, useI18n, type LocaleCode } from "../i18n";
+import { getTheme } from "../lib/themes";
 
 // One customer session = one ticket. We remember it in localStorage so a
 // refresh (or reopening the installed PWA) doesn't lose their place in line.
@@ -20,6 +19,7 @@ export default function CustomerTicket() {
 
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
+  const [business, setBusiness] = useState<Business | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [queues, setQueues] = useState<QueueDoc[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
@@ -32,12 +32,12 @@ export default function CustomerTicket() {
   useEffect(() => {
     if (!businessSlug) return;
     (async () => {
-      const snap = await getDocs(query(collection(db, "businesses"), where("slug", "==", businessSlug)));
-      if (snap.empty) { setNotFound(true); return; }
-      const docSnap = snap.docs[0];
-      setBusinessId(docSnap.id);
-      setBusinessName(docSnap.data().name ?? "");
-      const saved = localStorage.getItem(storageKey(docSnap.id));
+      const biz = await getBusinessBySlug(businessSlug);
+      if (!biz) { setNotFound(true); return; }
+      setBusinessId(biz.id);
+      setBusinessName(biz.name ?? "");
+      setBusiness(biz);
+      const saved = localStorage.getItem(storageKey(biz.id));
       if (saved) setMyTicketId(saved);
     })();
   }, [businessSlug]);
@@ -87,8 +87,11 @@ export default function CustomerTicket() {
     ? estimateWaitMinutes(peopleAhead, currentQueue.avgServiceSeconds, activeStations)
     : 0;
 
+  const theme = getTheme(business?.theme);
+  const themeStyle = theme.vars as CSSProperties;
+
   return (
-    <div className="screen">
+    <div className="screen" style={themeStyle}>
       <select className="lang-picker" value={locale}
         onChange={(e) => setLocale(e.target.value as LocaleCode)}>
         {Object.keys(LOCALES).map((code) => (
@@ -96,10 +99,12 @@ export default function CustomerTicket() {
         ))}
       </select>
 
+      {business?.logoUrl && <img src={business.logoUrl} alt={businessName} className="biz-logo" />}
+
       {!myTicket && (
         <>
           <h2 style={{ marginBottom: 4 }}>{businessName}</h2>
-          <p style={{ color: "#5B6B78", marginTop: 0, marginBottom: 18 }}>{t.chooseQueue}</p>
+          <p style={{ color: "var(--ink-soft)", marginTop: 0, marginBottom: 18 }}>{t.chooseQueue}</p>
           <div className="queue-list">
             {queues.map((q) => (
               <button key={q.id} className="queue-option" disabled={q.cutoff}
@@ -108,7 +113,7 @@ export default function CustomerTicket() {
               </button>
             ))}
           </div>
-          {error && <p style={{ color: "#B4442E", marginTop: 12 }}>{error}</p>}
+          {error && <p style={{ color: "var(--danger)", marginTop: 12 }}>{error}</p>}
         </>
       )}
 
@@ -118,6 +123,7 @@ export default function CustomerTicket() {
           <div className="ticket-number">{String(myTicket.number).padStart(3, "0")}</div>
           <div className="ticket-row"><span>{t.peopleAhead}</span><span>{peopleAhead}</span></div>
           <div className="ticket-row"><span>{t.estimatedWait}</span><span>~{waitMinutes} {t.minutes}</span></div>
+          <div className="wait-bar" />
         </div>
       )}
 
